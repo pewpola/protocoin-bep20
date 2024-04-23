@@ -1,127 +1,108 @@
-import {
-  time,
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
 
-describe("Lock", function () {
-  // We define a fixture to reuse the same setup in every test.
-  // We use loadFixture to run this setup once, snapshot that state,
-  // and reset Hardhat Network to that snapshot in every test.
-  async function deployOneYearLockFixture() {
-    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-    const ONE_GWEI = 1_000_000_000;
+describe("ProtoCoin", function () {
+  async function deployFixture() {
 
-    const lockedAmount = ONE_GWEI;
-    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
-
-    // Contracts are deployed using the first signer/account by default
     const [owner, otherAccount] = await hre.ethers.getSigners();
 
-    const Lock = await hre.ethers.getContractFactory("Lock");
-    const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+    const ProtoCoin = await hre.ethers.getContractFactory("ProtoCoin");
+    const protoCoin = await ProtoCoin.deploy();
 
-    return { lock, unlockTime, lockedAmount, owner, otherAccount };
+    return { protoCoin, owner, otherAccount };
   }
 
-  describe("Deployment", function () {
-    it("Should set the right unlockTime", async function () {
-      const { lock, unlockTime } = await loadFixture(deployOneYearLockFixture);
-
-      expect(await lock.unlockTime()).to.equal(unlockTime);
-    });
-
-    it("Should set the right owner", async function () {
-      const { lock, owner } = await loadFixture(deployOneYearLockFixture);
-
-      expect(await lock.owner()).to.equal(owner.address);
-    });
-
-    it("Should receive and store the funds to lock", async function () {
-      const { lock, lockedAmount } = await loadFixture(
-        deployOneYearLockFixture
-      );
-
-      expect(await hre.ethers.provider.getBalance(lock.target)).to.equal(
-        lockedAmount
-      );
-    });
-
-    it("Should fail if the unlockTime is not in the future", async function () {
-      // We don't use the fixture here because we want a different deployment
-      const latestTime = await time.latest();
-      const Lock = await hre.ethers.getContractFactory("Lock");
-      await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-        "Unlock time should be in the future"
-      );
-    });
+  it("Should have correct name", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const name = await protoCoin.name();
+    expect(name).to.equal("ProtoCoin");
   });
 
-  describe("Withdrawals", function () {
-    describe("Validations", function () {
-      it("Should revert with the right error if called too soon", async function () {
-        const { lock } = await loadFixture(deployOneYearLockFixture);
+  it("Should have corrent symbol", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const symbol = await protoCoin.symbol();
+    expect(symbol).to.equal("PRC");
+  });
 
-        await expect(lock.withdraw()).to.be.revertedWith(
-          "You can't withdraw yet"
-        );
-      });
+  it("Should have correct decimals", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const decimals = await protoCoin.decimals();
+    expect(decimals).to.equal(18);
+  });
 
-      it("Should revert with the right error if called from another account", async function () {
-        const { lock, unlockTime, otherAccount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+  it("Should have correct total supply", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const totalSupply = await protoCoin.totalSupply();
+    expect(totalSupply).to.equal(1000n * 10n ** 18n);
+  });
 
-        // We can increase the time in Hardhat Network
-        await time.increaseTo(unlockTime);
+  it("Should get balance", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const balance = await protoCoin.balanceOf(owner.address);
+    expect(balance).to.equal(1000n * 10n ** 18n);
+  });
 
-        // We use lock.connect() to send a transaction from another account
-        await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-          "You aren't the owner"
-        );
-      });
+  it("Should transfer", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const ownerBalanceBeforeTransfer = await protoCoin.balanceOf(owner.address);
+    const otherAccountBalanceBeforeTransfer = await protoCoin.balanceOf(otherAccount.address);
 
-      it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-        const { lock, unlockTime } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    await protoCoin.transfer(otherAccount.address, 5n);
 
-        // Transactions are sent using the first signer by default
-        await time.increaseTo(unlockTime);
+    const ownerBalanceAfterTransfer = await protoCoin.balanceOf(owner.address);
+    const otherAccountBalanceAfterTransfer = await protoCoin.balanceOf(otherAccount.address);
 
-        await expect(lock.withdraw()).not.to.be.reverted;
-      });
-    });
+    expect(ownerBalanceBeforeTransfer).to.equal(1000n * 10n ** 18n);
+    expect(ownerBalanceAfterTransfer).to.equal((1000n * 10n ** 18n) - 5n);
+    expect(otherAccountBalanceBeforeTransfer).to.equal(0);
+    expect(otherAccountBalanceAfterTransfer).to.equal(5);
+  });
 
-    describe("Events", function () {
-      it("Should emit an event on withdrawals", async function () {
-        const { lock, unlockTime, lockedAmount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+  it("Should NOT transfer", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const instance = protoCoin.connect(otherAccount)
+    await expect(instance.transfer(owner.address, 1n)).to.be.revertedWith("Insufficient balance");
+  });
 
-        await time.increaseTo(unlockTime);
+  it("Should approve", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    await protoCoin.approve(otherAccount.address, 1n);  
 
-        await expect(lock.withdraw())
-          .to.emit(lock, "Withdrawal")
-          .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-      });
-    });
+    const value = await protoCoin.allowance(owner.address, otherAccount.address);
+    expect(value).to.equal(1n);
+  });
 
-    describe("Transfers", function () {
-      it("Should transfer the funds to the owner", async function () {
-        const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-          deployOneYearLockFixture
-        );
+  it("Should transfer from", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const ownerBalanceBeforeTransfer = await protoCoin.balanceOf(owner.address);
+    const otherAccountBalanceBeforeTransfer = await protoCoin.balanceOf(otherAccount.address);
+    
+    await protoCoin.approve(otherAccount.address, 10n);
 
-        await time.increaseTo(unlockTime);
+    const instance = protoCoin.connect(otherAccount);
+    await instance.transferFrom(owner.address, otherAccount.address, 5n);
 
-        await expect(lock.withdraw()).to.changeEtherBalances(
-          [owner, lock],
-          [lockedAmount, -lockedAmount]
-        );
-      });
-    });
+    const ownerBalanceAfterTransfer = await protoCoin.balanceOf(owner.address);
+    const otherAccountBalanceAfterTransfer = await protoCoin.balanceOf(otherAccount.address);
+    const allowance = await protoCoin.allowance(owner.address, otherAccount.address);
+
+    expect(ownerBalanceBeforeTransfer).to.equal(1000n * 10n ** 18n);
+    expect(ownerBalanceAfterTransfer).to.equal((1000n * 10n ** 18n) - 5n);
+    expect(otherAccountBalanceBeforeTransfer).to.equal(0);
+    expect(otherAccountBalanceAfterTransfer).to.equal(5);
+    expect(allowance).to.equal(5);
+  });
+
+  it("Should NOT transfer from (insufficient balance)", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const instance = protoCoin.connect(otherAccount)
+    await expect(instance.transferFrom(otherAccount.address, owner.address, 1n)).to.be.revertedWith("Insufficient balance");
+  });
+
+  it("Should NOT transfer from (insufficient allowance)", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+    const instance = protoCoin.connect(otherAccount)
+    await expect(instance.transferFrom(owner.address, otherAccount.address, 1n)).to.be.revertedWith("Insufficient allowance");
   });
 });
