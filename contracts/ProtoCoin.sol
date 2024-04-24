@@ -14,7 +14,7 @@ contract ProtoCoin is ERC20 {
     }
 
     function mint() public {
-
+        require(_mintAmount > 0, "Minting is not enabled");
         _mint(msg.sender, _mintAmount);
     }
 }
