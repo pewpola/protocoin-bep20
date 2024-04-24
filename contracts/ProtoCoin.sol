@@ -19,7 +19,7 @@ contract ProtoCoin is ERC20 {
     }
 
     function setMintAmount(uint newAmount) public restricted {
-
+        _mintAmount = newAmount;
     }
 
     modifier restricted {
