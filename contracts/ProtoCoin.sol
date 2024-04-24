@@ -23,8 +23,12 @@ contract ProtoCoin is ERC20 {
         nextMint[msg.sender] = block.timestamp + _mintDelay;
     }
 
-    function setMintAmount(uint newAmount) public restricted {
+    function setMintAmount(uint256 newAmount) public restricted {
         _mintAmount = newAmount;
+    }
+
+    function setMintDelay(uint64 newDelayInSeconds) public restricted {
+        _mintAmount = newDelayInSeconds;
     }
 
     modifier restricted {
