@@ -7,6 +7,9 @@ contract ProtoCoin is ERC20 {
 
     address private _owner;
     uint private _mintAmount = 0;
+    uint64 private _mintDelay = 60 * 60 * 24;
+
+    mapping (address => uint256) private nextMint;
 
     constructor() ERC20("ProtoCoin", "PRC") {
         _owner = msg.sender;
@@ -15,7 +18,9 @@ contract ProtoCoin is ERC20 {
 
     function mint() public {
         require(_mintAmount > 0, "Minting is not enabled");
+        require(block.timestamp > nextMint[msg.sender], "You cannot mint twice in a row.");
         _mint(msg.sender, _mintAmount);
+        nextMint[msg.sender] = block.timestamp + _mintDelay;
     }
 
     function setMintAmount(uint newAmount) public restricted {
