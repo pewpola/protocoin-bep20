@@ -96,13 +96,18 @@ describe("ProtoCoin", function () {
 
   it("Should NOT transfer from (insufficient balance)", async function () {
     const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
-    const instance = protoCoin.connect(otherAccount)
-    await expect(instance.transferFrom(otherAccount.address, owner.address, 1n)).to.be.revertedWithCustomError(protoCoin, "ERC20InsufficientBalance");
+
+    const instance = protoCoin.connect(otherAccount);
+    await instance.approve(owner.address, 1n);
+
+    await expect(protoCoin.transferFrom(otherAccount.address, owner.address, 1n)).to.be.revertedWithCustomError(protoCoin, "ERC20InsufficientBalance");
   });
 
   it("Should NOT transfer from (insufficient allowance)", async function () {
     const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
-    const instance = protoCoin.connect(otherAccount)
+
+    const instance = protoCoin.connect(otherAccount);
+
     await expect(instance.transferFrom(owner.address, otherAccount.address, 1n)).to.be.revertedWithCustomError(protoCoin, "ERC20InsufficientAllowance");
   });
 });
