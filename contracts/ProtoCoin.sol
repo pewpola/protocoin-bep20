@@ -17,4 +17,13 @@ contract ProtoCoin is ERC20 {
         require(_mintAmount > 0, "Minting is not enabled");
         _mint(msg.sender, _mintAmount);
     }
+
+    function setMintAmount(uint newAmount) public restricted {
+
+    }
+
+    modifier restricted {
+        require(_owner == msg.sender, "You don't have permission.");
+        _;
+    }
 }
