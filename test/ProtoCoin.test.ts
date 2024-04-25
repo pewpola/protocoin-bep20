@@ -179,5 +179,21 @@ describe("ProtoCoin", function () {
     const instance = protoCoin.connect(otherAccount);
 
     expect(instance.setMintDelay(mintDelay)).to.be.revertedWith("You don't have permission.");
-  })
+  });
+
+  it("Should NOT mint", async function() {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    expect(protoCoin.mint()).to.be.revertedWith("Minting is not enabled");
+  });
+
+  it("Should NOT mint twice", async function() {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    await protoCoin.setMintAmount(1000n);
+
+    await protoCoin.mint();
+    
+    expect(protoCoin.mint()).to.be.revertedWith("You cannot mint twice in a row.");
+  });
 });
