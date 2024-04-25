@@ -171,4 +171,13 @@ describe("ProtoCoin", function () {
 
     expect(instance.setMintAmount(mintAmount)).to.be.revertedWith("You don't have permission.");
   });
+
+  it("Should NOT set mint delay", async function() {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    const mintDelay = 60 * 60 * 24;
+    const instance = protoCoin.connect(otherAccount);
+
+    expect(instance.setMintDelay(mintDelay)).to.be.revertedWith("You don't have permission.");
+  })
 });
