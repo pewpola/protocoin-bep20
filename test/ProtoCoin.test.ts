@@ -126,4 +126,21 @@ describe("ProtoCoin", function () {
 
     expect(otherAccountBalanceAfter).to.equal(otherAccountBalanceBefore + mintAmount);
   });
+
+  it("Should mint twice (different accounts)", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    const mintAmount = 1000n;
+    await protoCoin.setMintAmount(mintAmount);
+
+    const ownerBalanceBefore = await protoCoin.balanceOf(owner.address);
+    await protoCoin.mint();
+
+    const instance = protoCoin.connect(otherAccount);
+    await instance.mint();
+
+    const ownerBalanceAfter = await protoCoin.balanceOf(owner.address);
+
+    expect(ownerBalanceAfter).to.equal(ownerBalanceBefore + mintAmount);
+  });
 });
