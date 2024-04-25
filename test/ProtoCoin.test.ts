@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
 
@@ -142,5 +142,24 @@ describe("ProtoCoin", function () {
     const ownerBalanceAfter = await protoCoin.balanceOf(owner.address);
 
     expect(ownerBalanceAfter).to.equal(ownerBalanceBefore + mintAmount);
+  });
+
+  it("Should mint twice (different moments)", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    const mintAmount = 1000n;
+    await protoCoin.setMintAmount(mintAmount);
+
+    const ownerBalanceBefore = await protoCoin.balanceOf(owner.address);
+    await protoCoin.mint();
+
+    const mintDelay = 60 * 60 * 24;
+    await time.increase(mintDelay);
+    
+    await protoCoin.mint();
+
+    const ownerBalanceAfter = await protoCoin.balanceOf(owner.address);
+
+    expect(ownerBalanceAfter).to.equal(ownerBalanceBefore + (mintAmount * 2n));
   });
 });
