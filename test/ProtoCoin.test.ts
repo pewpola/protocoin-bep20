@@ -155,11 +155,20 @@ describe("ProtoCoin", function () {
 
     const mintDelay = 60 * 60 * 24;
     await time.increase(mintDelay);
-    
+
     await protoCoin.mint();
 
     const ownerBalanceAfter = await protoCoin.balanceOf(owner.address);
 
     expect(ownerBalanceAfter).to.equal(ownerBalanceBefore + (mintAmount * 2n));
+  });
+
+  it("Should NOT set mint amount", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    const mintAmount = 1000n;
+    const instance = protoCoin.connect(otherAccount);
+
+    expect(instance.setMintAmount(mintAmount)).to.be.revertedWith("You don't have permission.");
   });
 });
