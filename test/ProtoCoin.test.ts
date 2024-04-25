@@ -110,4 +110,20 @@ describe("ProtoCoin", function () {
 
     await expect(instance.transferFrom(owner.address, otherAccount.address, 1n)).to.be.revertedWithCustomError(protoCoin, "ERC20InsufficientAllowance");
   });
+
+  it("Should mint once", async function () {
+    const { protoCoin, owner, otherAccount } = await loadFixture(deployFixture);
+
+    const mintAmount = 1000n;
+    await protoCoin.setMintAmount(mintAmount);
+
+    const otherAccountBalanceBefore = await protoCoin.balanceOf(otherAccount);
+
+    const instance = protoCoin.connect(otherAccount);
+    await instance.mint();
+
+    const otherAccountBalanceAfter = await protoCoin.balanceOf(otherAccount);
+
+    expect(otherAccountBalanceAfter).to.equal(otherAccountBalanceBefore + mintAmount);
+  });
 });
